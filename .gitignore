@@ -6,20 +6,15 @@ target
 /.project
 /.settings
 /RUNNING_PID
-/ui/node_modules
-/ui/ui-akka-stream/node_modules
 
-
-
-# See http://help.github.com/ignore-files/ for more about ignoring files.
 
 # compiled output
-/dist
-/tmp
-/out-tsc
+ui/dist
+ui/tmp
+ui/out-tsc
 
 # dependencies
-/node_modules
+ui/node_modules
 
 # IDEs and editors
 /.idea
@@ -38,14 +33,14 @@ target
 !.vscode/extensions.json
 
 # misc
-/.sass-cache
-/connect.lock
-/coverage
+ui/.sass-cache
+ui/connect.lock
+ui/coverage
 /libpeerconnection.log
-npm-debug.log
-yarn-error.log
-testem.log
-/typings
+ui/npm-debug.log
+ui/yarn-error.log
+ui/testem.log
+ui/typings
 
 # System Files
 .DS_Store
