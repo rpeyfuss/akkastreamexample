@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import {FileService} from "../services/file.service";
 
 @Component({
   selector: 'app-akka-streaming',
@@ -7,7 +8,11 @@ import { Component, OnInit } from '@angular/core';
 })
 export class AkkaStreamingComponent implements OnInit {
 
-  constructor() { }
+  constructor(private fileService: FileService) {
+    fileService.fileData.subscribe(msg => {
+      console.log("response from websocket" + msg)
+    })
+  }
 
   ngOnInit() {
   }
