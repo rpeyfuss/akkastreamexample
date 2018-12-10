@@ -4,7 +4,7 @@
 # ~~~~
 
 # An example controller showing a sample home page
-GET     /data           com.reginapeyfuss.services.AkkaExampleController.streamData
+GET     /data           com.reginapeyfuss.services.fileStreaming.FileProcessorController.streamData
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /               controllers.Assets.versioned(path="/public/", file="index.html")

@@ -4,31 +4,30 @@ import {WebsocketService} from "./websocket.service";
 import {map} from "rxjs/operators";
 
 
-const FILE_URL = 'ws://echo.websocket.org/';
+//const FILE_URL = 'ws://echo.websocket.org/';
+const FILE_URL = 'ws://localhost:9020/data';
 
-export class File {
-  constructor(
-    public author: string,
-    public message: string
-  ){}
-
+export interface Average {
+ average: number
 }
+
+
 
 @Injectable({
   providedIn: 'root'
 })
 export class FileService {
-  public fileData: Subject<File>;
+  public fileData: Subject<Average>;
 
   constructor(wsService: WebsocketService) {
-    this.fileData = <Subject<File>>wsService
+    this.fileData = <Subject<Average>>wsService
       .connect(FILE_URL)
       .pipe(
-        map((response: MessageEvent): File => {
+        map((response: MessageEvent): Average => {
           let data = JSON.parse(response.data);
+          console.log(data)
           return{
-            author: data.author,
-            message: data.message
+            average: data
           }
         })
       );

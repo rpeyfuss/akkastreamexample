@@ -3,6 +3,8 @@ import { NgModule } from '@angular/core';
 
 import { AppComponent } from './app.component';
 import { AkkaStreamingComponent } from './akka-streaming/akka-streaming.component';
+import {FileService} from "./services/file.service";
+import {WebsocketService} from "./services/websocket.service";
 
 @NgModule({
   declarations: [
@@ -12,7 +14,7 @@ import { AkkaStreamingComponent } from './akka-streaming/akka-streaming.componen
   imports: [
     BrowserModule
   ],
-  providers: [],
+  providers: [FileService, WebsocketService],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

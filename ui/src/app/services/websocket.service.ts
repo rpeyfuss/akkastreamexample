@@ -1,14 +1,11 @@
-
 import { Injectable } from '@angular/core';
-// import { Message } from '../model/message';
-//import { Event } from '../model/event';
 
 import * as Rx from 'rxjs';
-import {Subject} from "rxjs";
 
-const SERVER_URL = 'http://localhost:9020';
 
-@Injectable()
+@Injectable({
+  providedIn: 'root'
+})
 export class WebsocketService {
 
  private subject: Rx.Subject<MessageEvent>;
@@ -32,7 +29,7 @@ export class WebsocketService {
         this.ws.onerror = obs.error.bind(obs);
         this.ws.onclose = obs.complete.bind(obs);
         return this.ws.close.bind(this.ws);
-      }).share();
+      });
 
     const observer = {
       next: (data: Object)=> {

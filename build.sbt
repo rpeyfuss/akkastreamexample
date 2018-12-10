@@ -8,7 +8,12 @@ lazy val root = (project in file(".")).enablePlugins(PlayScala)
 scalaVersion := "2.12.7"
 
 libraryDependencies += guice
+libraryDependencies += filters
+libraryDependencies += ws
+libraryDependencies += specs2 % Test
 libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "3.1.2" % Test
+libraryDependencies += "com.lightbend.akka" %% "akka-stream-alpakka-s3" % "0.19"
+libraryDependencies += "com.lightbend.akka" %% "akka-stream-alpakka-file" % "0.19"
 
 // Adds additional packages into Twirl
 //TwirlKeys.templateImports += "com.example.controllers._"
