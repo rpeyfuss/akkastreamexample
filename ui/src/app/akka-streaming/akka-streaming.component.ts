@@ -7,7 +7,7 @@ import {Average, FileService} from "../services/file.service";
   styleUrls: ['./akka-streaming.component.css']
 })
 export class AkkaStreamingComponent implements OnInit {
-  data: Average[] = [];
+  data: String[] = [];
 
 
   constructor(private fileService: FileService) {

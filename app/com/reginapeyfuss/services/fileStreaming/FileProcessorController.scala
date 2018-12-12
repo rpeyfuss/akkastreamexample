@@ -25,16 +25,16 @@ class FileProcessorController @Inject()(cc: ControllerComponents,
   implicit val materializer: ActorMaterializer = ActorMaterializer()
   val log = Logger(this.getClass)
 
-  def streamData() = WebSocket.accept[String, String] { request =>
+  def streamData(): WebSocket = WebSocket.accept[String, String] { request =>
 
 	  // Ignore incomming messages
 	  val in = Sink.ignore
 
 	  // Send  message and then leave the socket open
-	  val out =  fileProcessingManager.liveProcessingFiles()
+	  val out =  fileProcessingManager.dataProcessding()
 	  		  .recover {
-	  			  case timeoutExc: TimeoutException => "{\"message\": \"" + timeoutExc + "\"}"
-	  		  }
+				  case te: TimeoutException => "message: Timeout exception"
+			  }
 	  Flow.fromSinkAndSource(in, out)
   }
 

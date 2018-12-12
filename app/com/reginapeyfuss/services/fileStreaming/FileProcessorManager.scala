@@ -10,6 +10,8 @@ import akka.stream.alpakka.file.DirectoryChange
 import akka.stream.alpakka.file.scaladsl.DirectoryChangesSource
 import akka.stream.scaladsl.{Compression, FileIO, Flow, Framing, Source}
 import akka.util.ByteString
+import com.reginapeyfuss.services.httpClient.HttpClient
+import com.reginapeyfuss.services.models.{City, Message, MetaWeather}
 import javax.inject.{Inject, Singleton}
 import play.api.{Configuration, Logger}
 import play.api.libs.json._
@@ -17,17 +19,12 @@ import play.api.libs.json._
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
+import scala.concurrent.ExecutionContext.Implicits.global
 
-
-case class FileReadings(id: String, value: Double)
-
-object FileReadings{
-	implicit val fileReadingsWrite: Writes[FileReadings] = Json.writes[FileReadings]
-	implicit val fileReadingsReads: Reads[FileReadings] = Json.reads[FileReadings]
-}
 
 @Singleton
-class FileProcessorManager @Inject()(config: Configuration, actorSystem: ActorSystem){
+class FileProcessorManager @Inject()(config: Configuration, httpClient: HttpClient,
+									 actorSystem: ActorSystem){
 	implicit val materializer: ActorMaterializer = ActorMaterializer()(actorSystem)
 	private val log = Logger(this.getClass)
 
@@ -44,42 +41,50 @@ class FileProcessorManager @Inject()(config: Configuration, actorSystem: ActorSy
 	private val polInterval = FiniteDuration.apply(polIntervalStr.substring(0, polIntervalStr.indexOf(".")).toLong,
 		polIntervalStr.substring(polIntervalStr.indexOf(".")+1))
 
-	private val newFiles: Source[(Path, DirectoryChange), NotUsed] = DirectoryChangesSource.apply(Paths.get(dataDir), polInterval, 128)
+	val newFiles: Source[(Path, DirectoryChange), NotUsed] = DirectoryChangesSource.apply(Paths.get(dataDir), polInterval, 128)
 
-	def liveProcessingFiles(): Source[String, NotUsed] = {
+	def dataProcessding(): Source[String, NotUsed] = {
 		log.warn(s"starting file streaming")
 			newFiles
-			.via(gzJsonPaths)
+			.via(filePaths)
 			.via(fileBytes)
-			.via(decompressGZip)
 			.via (splitByNewLine)
-			.via(parseToJson)
-			.via(parseToObj[FileReadings])
-			.via(average)
-				.log("average is")
+				.log( "split by new line")
 				.withAttributes(Attributes.logLevels(onElement = Logging.WarningLevel, onFinish = Logging.WarningLevel, onFailure = Logging.ErrorLevel))
-			.via(average2ByteString)
+
+			.via(wordCount)
+					.log( "count words")
+					.withAttributes(Attributes.logLevels(onElement = Logging.WarningLevel, onFinish = Logging.WarningLevel, onFailure = Logging.ErrorLevel))
+
 	}
 
-	val gzJsonPaths: Flow[(Path, DirectoryChange), Path, NotUsed] =
+	val filePaths: Flow[(Path, DirectoryChange), Path, NotUsed] =
 		Flow[(Path, DirectoryChange)]
-			.filter(pair => pair._1.toString.endsWith(".json.gz") && pair._2.equals(DirectoryChange.Creation))
-        	.map(p => {
-				log.warn (s"file path is: $p._1")
-				p._1
-			})
+			.filter(pair => pair._1.toString.endsWith(".csv") && pair._2.equals(DirectoryChange.Creation))
+        	.map(p => p._1)
 
 	val fileBytes: Flow[Path, ByteString, NotUsed] = Flow[Path].flatMapConcat(path => FileIO.fromPath(path))
-
-	val decompressGZip: Flow[ByteString, ByteString, NotUsed] = {
-		Flow[ByteString].via(Compression.gunzip())
-	}
 
 	val splitByNewLine: Flow[ByteString, String, NotUsed] = {
 		Flow[ByteString]
 				.via(Framing.delimiter(ByteString("\n"), Int.MaxValue, allowTruncation = true))
 				.map(_.utf8String)
 	}
+
+	val sleep: Flow[String, String, NotUsed] = Flow[String].map {
+		str => {
+			Thread.sleep(1000)
+			str
+		}
+	}
+	val wordCount: Flow[String, String, NotUsed] = Flow[String].mapAsync(5) (
+		str => {
+			val list = str.split(",")
+			val count = list.apply(1).split(" ").length
+			Future.successful(s"${list.apply(0)}: word count is $count ")
+		})
+
+
 
 	val parseToJson: Flow[String, Option[JsValue], NotUsed] = {
 		Flow[String].map(
@@ -93,6 +98,7 @@ class FileProcessorManager @Inject()(config: Configuration, actorSystem: ActorSy
 				}
 		)
 	}
+
 
 	def parseToObj[T: Reads]:  Flow[Option[JsValue], Option[T], NotUsed] = {
 		Flow[Option[JsValue]].map {
@@ -108,19 +114,25 @@ class FileProcessorManager @Inject()(config: Configuration, actorSystem: ActorSy
 		}
 	}
 
-	val average: Flow[Option[FileReadings], Double, NotUsed] = {
-		Flow[Option[FileReadings]]
-			.grouped(2)
-			.mapAsyncUnordered(10)(pair => Future.successful{
-				pair.map {
-					case Some(reading) => reading.value
-					case None => -1
-				}
-					.sum/2
-			})
-			.filter(p => p > averageThreshold)
-
+	val cityData: Flow[Either[City, Option[MetaWeather]], String, NotUsed] = Flow[Either[City, Option[MetaWeather]]].map {
+		metaWeather => {
+			metaWeather match {
+				case Right(meta) => if (meta.isDefined) meta.get.title.getOrElse("no city specified")
+				else ("Error")
+				case Left(err) => err.error.getOrElse("no error available")
+			}
+		}
 	}
-	val average2ByteString: Flow[Double, String, NotUsed] = Flow[Double].map(p =>  p.toString)
+
+	val metaWeatherData: Flow[String, Either[City, Option[MetaWeather]], NotUsed] =
+		Flow[String].mapAsync(2)(city => {
+			val result: Future[Either[String, List[MetaWeather]]] = httpClient.getCityMetaData(city)
+			result.map {
+				res => res match {
+					case Right(metaData) => Right(metaData.headOption)
+					case Left(err) => Left(City(None, None, None, None, Some(err)))
+				}
+			}
+		})
 
 }

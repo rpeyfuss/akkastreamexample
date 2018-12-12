@@ -1,7 +1,5 @@
 
-<div class="row">
-  <button (click)="sendMsg()">Send Message</button>
-</div>
+
 <div class="row padding">
 
   <table>
@@ -12,8 +10,8 @@
     </tr>
     </thead>
     <tbody>
-    <tr *ngFor="let avg of data">
-      <td>{{'average is: ' + avg?.average}}</td>
+    <tr *ngFor="let item of data">
+      <td>{{item}}</td>
     </tr>
     </tbody>
   </table>

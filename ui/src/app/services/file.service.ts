@@ -17,18 +17,16 @@ export interface Average {
   providedIn: 'root'
 })
 export class FileService {
-  public fileData: Subject<Average>;
+  public fileData: Subject<String>;
 
   constructor(wsService: WebsocketService) {
-    this.fileData = <Subject<Average>>wsService
+    this.fileData = <Subject<String>>wsService
       .connect(FILE_URL)
       .pipe(
-        map((response: MessageEvent): Average => {
-          let data = JSON.parse(response.data);
-          console.log(data)
-          return{
-            average: data
-          }
+        map((response: MessageEvent): String => {
+          let data:String = response.data;
+          console.log(data);
+          return data;
         })
       );
   }
